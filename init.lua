@@ -227,19 +227,80 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
+  {
+    'ruifm/gitlinker.nvim',
+    dependencies = 'nvim-lua/plenary.nvim',
+    event = 'VeryLazy',
+    opts = { mapping = '<leader>gl' },
+  },
 
-  -- NOTE: Plugins can also be added by using a table,
-  -- with the first argument being the link and the following
-  -- keys can be used to configure plugin behavior/loading/etc.
-  --
-  -- Use `opts = {}` to force a plugin to be loaded.
-  --
-  --  This is equivalent to:
-  --    require('Comment').setup({})
+  {
+    'ruanyl/vim-gh-line',
+  },
+  {
+    'klen/nvim-test',
+    config = function()
+      -- NOTE: Plugins can also be added by using a table,
+      -- with the first argument being the link and the following
+      -- keys can be used to configure plugin behavior/loading/etc.
+      --
+      -- Use `opts = {}` to force a plugin to be loaded.
+      --
+      --  This is equivalent to:
+      --    require('Comment').setup({})
+      require('nvim-test').setup {
+        run = true, -- run tests (using for debug)
+        commands_create = true, -- create commands (TestFile, TestLast, ...)
+        filename_modifier = ':.', -- modify filenames before tests run(:h filename-modifiers)
+        silent = false, -- less notifications
+        term = 'terminal', -- a terminal to run ("terminal"|"toggleterm")
+        termOpts = {
+          direction = 'vertical', -- terminal's direction ("horizontal"|"vertical"|"float")
+          width = 96, -- terminal's width (for vertical|float)
+          height = 24, -- terminal's height (for horizontal|float)
+          go_back = false, -- return focus to original window after executing
+          stopinsert = 'auto', -- exit from insert mode (true|false|"auto")
+          keep_one = true, -- keep only one terminal for testing
+        },
+        runners = { -- setup tests runners
+          cs = 'nvim-test.runners.dotnet',
+          go = 'nvim-test.runners.go-test',
+          haskell = 'nvim-test.runners.hspec',
+          javascriptreact = 'nvim-test.runners.jest',
+          javascript = 'nvim-test.runners.jest',
+          lua = 'nvim-test.runners.busted',
+          python = 'nvim-test.runners.pytest',
+          ruby = 'nvim-test.runners.rspec',
+          rust = 'nvim-test.runners.cargo-test',
+          typescript = 'nvim-test.runners.jest',
+          typescriptreact = 'nvim-test.runners.jest',
+        },
 
+        require('nvim-test.runners.jest'):setup {
+          command = '~/node_modules/.bin/jest', -- a command to run the test runner
+          args = { '--collectCoverage=false' }, -- default arguments
+          env = { CUSTOM_VAR = 'value' }, -- custom environment variables
+
+          file_pattern = '\\v(__tests__/.*|(spec|test))\\.(js|jsx|coffee|ts|tsx)$', -- determine whether a file is a testfile
+          find_files = { '{name}.test.{ext}', '{name}.spec.{ext}' }, -- find testfile for a file
+
+          filename_modifier = ':.', -- modify filename before tests run (:h filename-modifiers)
+          working_directory = nil, -- set working directory (cwd by default)
+        },
+        require('nvim-test.runners.rspec'):setup {
+          command = 'bundle',
+        },
+      }
+    end,
+  },
   -- "gc" to comment visual regions/lines
   { 'numToStr/Comment.nvim', opts = {} },
-
+  {
+    'stevearc/oil.nvim',
+    opts = {},
+    -- Optional dependencies
+    dependencies = { 'nvim-tree/nvim-web-devicons' },
+  },
   -- Here is a more advanced example where we pass configuration
   -- options to `gitsigns.nvim`. This is equivalent to the following Lua:
   --    require('gitsigns').setup({ ... })
@@ -286,8 +347,10 @@ require('lazy').setup({
         ['<leader>r'] = { name = '[R]ename', _ = 'which_key_ignore' },
         ['<leader>s'] = { name = '[S]earch', _ = 'which_key_ignore' },
         ['<leader>w'] = { name = '[W]orkspace', _ = 'which_key_ignore' },
-        ['<leader>t'] = { name = '[T]oggle', _ = 'which_key_ignore' },
+        -- ['<leader>t'] = { name = '[T]oggle', _ = 'which_key_ignore' },
         ['<leader>h'] = { name = 'Git [H]unk', _ = 'which_key_ignore' },
+        ['<leader>t'] = { '<cmd>TestFile<cr>', 'TestFile' },
+        ['<leader>T'] = { '<cmd>TestNearest<cr>', 'TestNearest' },
       }
       -- visual mode
       require('which-key').register({
@@ -567,6 +630,7 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
+        solargraph = {},
         -- pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
@@ -575,7 +639,7 @@ require('lazy').setup({
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`tsserver`) will work just fine
-        -- tsserver = {},
+        tsserver = {},
         --
 
         lua_ls = {
@@ -878,7 +942,7 @@ require('lazy').setup({
   -- require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
-  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
