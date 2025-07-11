@@ -166,6 +166,7 @@ vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = 'Go to previous [D]
 vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = 'Go to next [D]iagnostic message' })
 vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show diagnostic [E]rror messages' })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+vim.diagnostic.config { virtual_text = false }
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -223,10 +224,36 @@ vim.opt.rtp:prepend(lazypath)
 --  To update plugins you can run
 --    :Lazy update
 --
+local projectionist_config = function ()
+  vim.cmd [[
+  let g:projectionist_heuristics ={
+  \  "spec/*.rb": {
+  \     "app/*.rb":                   { "alternate": "spec/{}_spec.rb",                                         "type": "source"},
+  \     "app/javascript/src/*.js":    { "alternate": "spec/javascript/{}.test.js",                              "type": "source"},
+  \     "app/javascript/src/*.jsx":   { "alternate": "spec/javascript/{}.test.js",                              "type": "source"},
+  \     "lib/*.rb":                   { "alternate": "spec/{}_spec.rb",                                         "type": "source"},
+  \     "spec/*_spec.rb":             { "alternate": ["app/{}.rb","lib/{}.rb"],                                 "type": "test"},
+  \     "spec/javascript/*.test.js":  { "alternate": ["app/javascript/src/{}.js", "app/javascript/src/{}.jsx"], "type": "test"},
+  \  },
+  \ "*_test.go": {
+  \    "*.go":       { "alternate": "{}_test.go", "type": "test" },
+  \    "*_test.go":  { "alternate": "{}.go",      "type": "source" },
+  \  },
+  \ "*.erb": {
+  \    "*.html.erb": { "alternate": "{}.text.erb", "type": "text" },
+  \    "*.text.erb": { "alternate": "{}.html.erb", "type": "html" },
+  \ }
+  \}
+]]
+end
+
 -- NOTE: Here is where you install your plugins.
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
+  --
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
+  'nvim-lua/plenary.nvim',
+  'nvim-pack/nvim-spectre',
   {
     'ruifm/gitlinker.nvim',
     dependencies = 'nvim-lua/plenary.nvim',
@@ -234,6 +261,12 @@ require('lazy').setup({
     opts = { mapping = '<leader>gl' },
   },
 
+{
+  -- Map tools and actions based on the project
+    "tpope/vim-projectionist",
+    config = projectionist_config,
+    event = "VeryLazy",
+  },
   {
     'ruanyl/vim-gh-line',
   },
@@ -386,7 +419,12 @@ require('lazy').setup({
         end,
       },
       { 'nvim-telescope/telescope-ui-select.nvim' },
-
+      { 
+        "nvim-telescope/telescope-live-grep-args.nvim" ,
+        -- This will not install any breaking changes.
+        -- For major updates, this must be adjusted manually.
+        version = "^1.0.0",
+    },
       -- Useful for getting pretty icons, but requires a Nerd Font.
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
     },
@@ -432,6 +470,7 @@ require('lazy').setup({
       -- Enable Telescope extensions if they are installed
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
+      pcall(require('telescope').load_extension "live_grep_args")
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
@@ -445,6 +484,18 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
       vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
+      vim.keymap.set('n', '<leader>S', '<cmd>lua require("spectre").toggle()<CR>', {
+        desc = "Toggle Spectre"
+      })
+      vim.keymap.set('n', '<leader>sw', '<cmd>lua require("spectre").open_visual({select_word=true})<CR>', {
+        desc = "Search current word"
+      })
+      vim.keymap.set('v', '<leader>sw', '<esc><cmd>lua require("spectre").open_visual()<CR>', {
+        desc = "Search current word"
+      })
+      vim.keymap.set('n', '<leader>sp', '<cmd>lua require("spectre").open_file_search({select_word=true})<CR>', {
+        desc = "Search on current file"
+      })
 
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
@@ -532,7 +583,7 @@ require('lazy').setup({
           -- Jump to the definition of the word under your cursor.
           --  This is where a variable was first declared, or where a function is defined, etc.
           --  To jump back, press <C-t>.
-          map('gd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')
+          map('gd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')init.
 
           -- Find references for the word under your cursor.
           map('gr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
@@ -603,6 +654,26 @@ require('lazy').setup({
         end,
       })
 
+      local hardmode = true
+      if hardmode then
+        -- Show an error message if a disabled key is pressed
+        local msg = [[<cmd>echohl Error | echo "KEY DISABLED" | echohl None<CR>]]
+
+        -- Disable arrow keys in insert mode with a styled message
+        vim.api.nvim_set_keymap('i', '<Up>', '<C-o>' .. msg, { noremap = true, silent = false })
+        vim.api.nvim_set_keymap('i', '<Down>', '<C-o>' .. msg, { noremap = true, silent = false })
+        vim.api.nvim_set_keymap('i', '<Left>', '<C-o>' .. msg, { noremap = true, silent = false })
+        vim.api.nvim_set_keymap('i', '<Right>', '<C-o>' .. msg, { noremap = true, silent = false })
+        vim.api.nvim_set_keymap('i', '<Del>', '<C-o>' .. msg, { noremap = true, silent = false })
+        vim.api.nvim_set_keymap('i', '<BS>', '<C-o>' .. msg, { noremap = true, silent = false })
+
+        -- Disable arrow keys in normal mode with a styled message
+        vim.api.nvim_set_keymap('n', '<Up>', msg, { noremap = true, silent = false })
+        vim.api.nvim_set_keymap('n', '<Down>', msg, { noremap = true, silent = false })
+        vim.api.nvim_set_keymap('n', '<Left>', msg, { noremap = true, silent = false })
+        vim.api.nvim_set_keymap('n', '<Right>', msg, { noremap = true, silent = false })
+        vim.api.nvim_set_keymap('n', '<BS>', msg, { noremap = true, silent = false })
+      end
       vim.api.nvim_create_autocmd('LspDetach', {
         group = vim.api.nvim_create_augroup('kickstart-lsp-detach', { clear = true }),
         callback = function(event)
@@ -708,11 +779,7 @@ require('lazy').setup({
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true }
-        return {
-          timeout_ms = 500,
-          lsp_fallback = not disable_filetypes[vim.bo[bufnr].filetype],
-        }
+        return
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
