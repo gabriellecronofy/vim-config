@@ -374,21 +374,18 @@ require('lazy').setup({
       require('which-key').setup()
 
       -- Document existing key chains
-      require('which-key').register {
-        ['<leader>c'] = { name = '[C]ode', _ = 'which_key_ignore' },
-        ['<leader>d'] = { name = '[D]ocument', _ = 'which_key_ignore' },
-        ['<leader>r'] = { name = '[R]ename', _ = 'which_key_ignore' },
-        ['<leader>s'] = { name = '[S]earch', _ = 'which_key_ignore' },
-        ['<leader>w'] = { name = '[W]orkspace', _ = 'which_key_ignore' },
-        -- ['<leader>t'] = { name = '[T]oggle', _ = 'which_key_ignore' },
-        ['<leader>h'] = { name = 'Git [H]unk', _ = 'which_key_ignore' },
-        ['<leader>t'] = { '<cmd>TestFile<cr>', 'TestFile' },
-        ['<leader>T'] = { '<cmd>TestNearest<cr>', 'TestNearest' },
+      require('which-key').add {
+        { '<leader>c', group = '[C]ode' },
+        { '<leader>d', group = '[D]ocument' },
+        { '<leader>r', group = '[R]ename' },
+        { '<leader>s', group = '[S]earch' },
+        { '<leader>w', group = '[W]orkspace' },
+        { '<leader>h', group = 'Git [H]unk' },
+        { '<leader>t', '<cmd>TestFile<cr>',    desc = 'TestFile' },
+        { '<leader>T', '<cmd>TestNearest<cr>', desc = 'TestNearest' },
+        -- visual mode
+        { '<leader>h', desc = 'Git [H]unk', mode = 'v' },
       }
-      -- visual mode
-      require('which-key').register({
-        ['<leader>h'] = { 'Git [H]unk' },
-      }, { mode = 'v' })
     end,
   },
 
@@ -709,8 +706,8 @@ require('lazy').setup({
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
         --
-        -- But for many setups, the LSP (`tsserver`) will work just fine
-        tsserver = {},
+        -- But for many setups, the LSP (`ts_ls`) will work just fine
+        ts_ls = {},
         --
 
         lua_ls = {
@@ -964,30 +961,20 @@ require('lazy').setup({
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
-    branch = 'main',
-    lazy = false,
     build = ':TSUpdate',
-    config = function()
-      local ensure_installed = {
+    main = 'nvim-treesitter.configs',
+    opts = {
+      ensure_installed = {
         'bash', 'c', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'vim', 'vimdoc',
-      }
-      require('nvim-treesitter').install(ensure_installed)
-
-      vim.api.nvim_create_autocmd('FileType', {
-        group = vim.api.nvim_create_augroup('kickstart-treesitter', { clear = true }),
-        callback = function(args)
-          local buf = args.buf
-          local ft = vim.bo[buf].filetype
-          local lang = vim.treesitter.language.get_lang(ft)
-          if not lang then return end
-          if not pcall(vim.treesitter.start, buf, lang) then return end
-          -- Ruby's tree-sitter indent is known to be unreliable; keep Vim's indent for it.
-          if ft ~= 'ruby' then
-            vim.bo[buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-          end
-        end,
-      })
-    end,
+      },
+      auto_install = true,
+      highlight = {
+        enable = true,
+        -- Ruby's tree-sitter indent is known to be unreliable; keep Vim's indent for it.
+        additional_vim_regex_highlighting = { 'ruby' },
+      },
+      indent = { enable = true, disable = { 'ruby' } },
+    },
   },
 
   -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
