@@ -961,20 +961,33 @@ require('lazy').setup({
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
+    branch = 'main',
+    lazy = false,
     build = ':TSUpdate',
-    main = 'nvim-treesitter.configs',
-    opts = {
-      ensure_installed = {
+    config = function()
+      local ensure_installed = {
         'bash', 'c', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'vim', 'vimdoc',
-      },
-      auto_install = true,
-      highlight = {
-        enable = true,
-        -- Ruby's tree-sitter indent is known to be unreliable; keep Vim's indent for it.
-        additional_vim_regex_highlighting = { 'ruby' },
-      },
-      indent = { enable = true, disable = { 'ruby' } },
-    },
+        -- Previously picked up by master's auto_install, which main does not have
+        'css', 'embedded_template', 'git_config', 'gitignore', 'go', 'javascript', 'json',
+        'make', 'ruby', 'scss', 'sql', 'swift', 'terraform', 'tsx', 'typescript', 'xml', 'yaml',
+      }
+      require('nvim-treesitter').install(ensure_installed)
+
+      vim.api.nvim_create_autocmd('FileType', {
+        group = vim.api.nvim_create_augroup('kickstart-treesitter', { clear = true }),
+        callback = function(args)
+          local buf = args.buf
+          local ft = vim.bo[buf].filetype
+          local lang = vim.treesitter.language.get_lang(ft)
+          if not lang then return end
+          if not pcall(vim.treesitter.start, buf, lang) then return end
+          -- Ruby's tree-sitter indent is known to be unreliable; keep Vim's indent for it.
+          if ft ~= 'ruby' then
+            vim.bo[buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end
+        end,
+      })
+    end,
   },
 
   -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
