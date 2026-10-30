@@ -981,6 +981,8 @@ require('lazy').setup({
           local lang = vim.treesitter.language.get_lang(ft)
           if not lang then return end
           if not pcall(vim.treesitter.start, buf, lang) then return end
+          -- Vim's Ruby indent reads regex syntax groups, which treesitter.start turns off
+          if ft == 'ruby' then vim.bo[buf].syntax = 'ruby' end
           -- Ruby's tree-sitter indent is known to be unreliable; keep Vim's indent for it.
           if ft ~= 'ruby' then
             vim.bo[buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
